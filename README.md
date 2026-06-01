@@ -59,7 +59,7 @@ Runs the Vitest suite once (`vitest run`).
 | `src/qrDecode.js` | Wraps `decodeProofPayload` from `@kagehq/shared`; turns raw QR text into `{ proof, publicSignals }`. |
 | `src/submit.js` | Formats the snarkjs proof to the 256-byte on-chain layout expected by `groth16-solana` (negated A-y, imaginary-first G2), derives the nullifier PDA, and calls the Anchor `verify` instruction via `@coral-xyz/anchor`. |
 | `src/store.js` | In-memory store that can only hold `{ result, wallet, nullifier, slot, timestampLocal }` — the schema has no PII fields by construction. |
-| `src/App.jsx` | Activates the rear camera via `html5-qrcode` at 10 fps / 280 px viewfinder. On each successful scan it calls `parseScannedPayload`, records the pass via the store, and renders a side-by-side contrast panel (Traditional KYC vs. proven-kyc). |
+| `src/App.jsx` | Activates the rear camera via `html5-qrcode` at 10 fps / 280 px viewfinder. On each successful scan it calls `parseScannedPayload`, records the pass via the store, and renders a side-by-side contrast panel (Traditional KYC vs. Kage). |
 
 ## Privacy note
 
