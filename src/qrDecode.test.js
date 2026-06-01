@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { encodeProofPayload } from "@proven-kyc/shared";
+import { encodeProofPayload } from "@kagehq/shared";
 import { parseScannedPayload } from "./qrDecode";
 
 describe("qr decode", () => {

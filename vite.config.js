@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   optimizeDeps: {
-    include: ["@proven-kyc/shared"],
+    include: ["@kagehq/shared"],
   },
   build: {
     commonjsOptions: {
