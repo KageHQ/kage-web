@@ -7,28 +7,55 @@
   <img src="https://img.shields.io/badge/Zero--Knowledge-6E56CF?style=flat-square" alt="Zero-Knowledge">
 </p>
 
-The zero-knowledge KYC verifier UI. It scans a mobile QR code, submits the Groth16 proof to the Solana program, shows the result — and stores **no PII**.
+The zero-knowledge KYC verifier UI. A user types a 6-digit relay code, the app fetches the Groth16 proof from the issuer, submits it on-chain to the Solana program, and shows **pass** or **replay rejected** — storing **no PII**.
 
-A user proves they hold a valid Indonesian KTP and are age ≥ 18 without revealing NIK, name, or DOB. This verifier learns only `pass` and a sybil-resistant nullifier; it never sees personal data.
+A user proves they hold a valid Indonesian KTP and are age ≥ 18 without revealing NIK, name, or DOB. This verifier learns only a `pass` result and a sybil-resistant nullifier; it never sees personal data.
+
+> **No camera required.** The proof payload is too dense for reliable webcam scanning, so transport is a 6-digit relay code the mobile prover obtains from the issuer after submitting its proof.
 
 ## Where it fits
 
 ```
-Mobile (PII, on-device proof)
-  → QR code (proof + public signals, no PII)
-    → kage-web  ← YOU ARE HERE
-      → kage-program (on-chain Groth16 verify + nullifier PDA)
+Mobile (PII stays on-device)
+  → POST /prove  (server-side proof generation via issuer)
+    → POST /relay  (issuer publishes proof, returns 6-digit code)
+      → User types code into kage-web  ← YOU ARE HERE
+        → GET /relay/:code  (fetch encoded payload from issuer)
+          → decode payload (@kagehq/shared)
+            → submitProof on-chain
+              → kage-program (Groth16 verify + nullifier PDA)
 ```
 
-## Prerequisites
+## How it works
 
-- A running Solana validator with `kage-program` deployed, listening on `:8899` (e.g. `surfpool` simnet). Point the Anchor provider in the app at that RPC endpoint before scanning.
-- `pnpm`.
-- A camera, served over `localhost` or HTTPS (see Run).
+1. **Enter code** — `src/App.jsx` renders a numeric input; the user types the 6-digit code shown on the prover's phone.
+2. **Fetch** — `fetchAndVerify()` calls `GET ${VITE_ISSUER_URL}/relay/:code`. The issuer returns `{ payload }`, a compact encoded string.
+3. **Decode** — `handlePayload()` passes the payload string to `parseScannedPayload` (`src/qrDecode.js`), which delegates to `decodeProofPayload` from `@kagehq/shared` to recover `{ proof, publicSignals }`.
+4. **Submit on-chain** — `submitProof` (`src/submit.js`) formats the snarkjs proof to the 256-byte layout expected by `groth16-solana` (negated A-y, imaginary-first G2 coords), derives the nullifier PDA, and calls the Anchor `verify` instruction via `@coral-xyz/anchor`.
+5. **Result** — `pass` if the transaction confirms; `replay rejected` if the nullifier PDA already exists (nullifier reuse caught on-chain).
+
+### Key modules
+
+| Module | Role |
+|---|---|
+| `src/App.jsx` | 6-digit code input + Verify button; orchestrates fetch → decode → submit; renders the pass/replay result and the side-by-side privacy contrast panel. |
+| `src/qrDecode.js` | Thin wrapper around `decodeProofPayload` from `@kagehq/shared`; turns the relay payload string into `{ proof, publicSignals }`. |
+| `src/submit.js` | Formats the snarkjs proof to the 256-byte on-chain layout, derives the nullifier PDA from `publicSignals[5]`, and calls the Anchor `verify` instruction. |
+| `src/solana.js` | Loads (or generates) a burner `Keypair` from `localStorage`, builds an `AnchorProvider` + `Program` from `@kagehq/program-idl`, and exposes `ensureFunded` for auto-airdrop on local/surfpool validators. |
+| `src/store.js` | In-memory store; records only `{ result, wallet, nullifier, slot, timestampLocal }` — no PII fields by construction. |
+
+## Config
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VITE_ISSUER_URL` | `http://localhost:4000` | Base URL of the kage-issuer (relay endpoint). |
+| `VITE_RPC_URL` | `http://localhost:8899` | Solana RPC endpoint. Points at a surfpool simnet locally. |
+
+The browser burner wallet is stored in `localStorage` under `kage-verifier-burner`. `ensureFunded` auto-airdrops 2 SOL when the balance falls below 1 SOL — this only works on a local or surfpool validator that accepts `requestAirdrop`.
 
 ## Install
 
-`@kagehq/shared` is published to GitHub Packages. Create `.npmrc` (do **not** commit it):
+`@kagehq/shared` and `@kagehq/program-idl` are published to GitHub Packages. Create `.npmrc` at the repo root (**do not commit it**):
 
 ```
 @kagehq:registry=https://npm.pkg.github.com
@@ -43,13 +70,15 @@ pnpm install
 
 ## Run
 
+Prerequisites:
+- surfpool simnet (or local `solana-test-validator`) on `:8899` with `kage-program` deployed.
+- `kage-issuer` running on `:4000` (provides the `/relay/:code` endpoint).
+
 ```sh
 pnpm dev
 ```
 
 Vite starts at **http://localhost:5173**.
-
-> Camera access requires `localhost` or HTTPS — `http://` over a network will be blocked by the browser.
 
 ## Test
 
@@ -58,15 +87,6 @@ pnpm test
 ```
 
 Runs the Vitest suite once (`vitest run`).
-
-## What it does
-
-| Module | Role |
-|---|---|
-| `src/qrDecode.js` | Wraps `decodeProofPayload` from `@kagehq/shared`; turns raw QR text into `{ proof, publicSignals }`. |
-| `src/submit.js` | Formats the snarkjs proof to the 256-byte on-chain layout expected by `groth16-solana` (negated A-y, imaginary-first G2), derives the nullifier PDA, and calls the Anchor `verify` instruction via `@coral-xyz/anchor`. |
-| `src/store.js` | In-memory store that can only hold `{ result, wallet, nullifier, slot, timestampLocal }` — the schema has no PII fields by construction. |
-| `src/App.jsx` | Activates the rear camera via `html5-qrcode` at 10 fps / 280 px viewfinder. On each successful scan it calls `parseScannedPayload`, records the pass via the store, and renders a side-by-side contrast panel (Traditional KYC vs. Kage). |
 
 ## Privacy note
 
@@ -90,8 +110,8 @@ No NIK, no name, no date of birth, no address. A breach of this verifier leaks n
 |---|---|
 | [kage-shared](https://github.com/KageHQ/kage-shared) | Shared types, `decodeProofPayload`, and circuit constants |
 | [kage-circuits](https://github.com/KageHQ/kage-circuits) | Circom circuits + trusted setup (Groth16) |
-| [kage-issuer](https://github.com/KageHQ/kage-issuer) | Issues signed KTP credentials to the mobile app |
+| [kage-issuer](https://github.com/KageHQ/kage-issuer) | Issues credentials, runs server-side proof generation, hosts the relay endpoint |
 | [kage-program](https://github.com/KageHQ/kage-program) | Anchor program — on-chain Groth16 verify + nullifier PDA |
-| **kage-web** *(this repo)* | React/Vite browser verifier — QR scan + on-chain submit |
-| [kage-mobile](https://github.com/KageHQ/kage-mobile) | Mobile app — holds PII, generates proof on-device |
-| [kage-e2e](https://github.com/KageHQ/kage-e2e) | End-to-end tests: issuer → proof → QR → on-chain |
+| **kage-web** *(this repo)* | React/Vite browser verifier — relay-code input + on-chain submit |
+| [kage-mobile](https://github.com/KageHQ/kage-mobile) | Mobile app — holds PII, triggers proof generation, displays the 6-digit relay code |
+| [kage-e2e](https://github.com/KageHQ/kage-e2e) | End-to-end tests: issuer → proof → relay code → on-chain verify |
