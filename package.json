@@ -10,7 +10,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "buffer": "^6.0.3",
-    "@kagehq/shared": "^1.1.0",
+    "@kagehq/shared": "^1.2.0",
     "@kagehq/program-idl": "^1.0.0"
   },
   "devDependencies": {

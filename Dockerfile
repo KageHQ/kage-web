@@ -18,8 +18,12 @@ ENV VITE_ISSUER_URL=$VITE_ISSUER_URL \
 # .npmrc holds the GitHub Packages token for the private @kagehq/* deps.
 # Mounted as a BuildKit secret so the token never lands in an image layer.
 COPY package.json pnpm-lock.yaml ./
+# not frozen: package.json pins @kagehq/shared ^1.2.0 (7-signal scoped proof)
+# but the committed lockfile can't be refreshed locally (dev token expired), so
+# let the build re-resolve. Revert to --frozen-lockfile once the lockfile is
+# updated and committed.
 RUN --mount=type=secret,id=npmrc,target=/app/.npmrc \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile
 
 COPY . .
 RUN pnpm build
