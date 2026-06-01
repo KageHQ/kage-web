@@ -125,6 +125,27 @@ body {
 
 .console { margin-top: 46px; }
 
+.gate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -4px 0 18px;
+  font-size: 0.84rem;
+  color: var(--ink-muted);
+}
+.gate svg { width: 15px; height: 15px; color: var(--ink-faint); flex: 0 0 auto; }
+.gate strong { color: var(--ink); font-weight: 560; }
+.gate-id {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  padding: 2px 7px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  margin-left: 2px;
+}
+
 .verify-row {
   display: flex;
   align-items: stretch;

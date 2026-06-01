@@ -3,12 +3,14 @@
 export function createVerifierStore() {
   const rows = [];
   return {
-    recordPass({ wallet, nullifier, slot }) {
+    recordPass({ wallet, nullifier, slot, scope, eventName }) {
       rows.push({
         result: "pass",
         wallet,
         nullifier,
         slot,
+        scope,
+        eventName,
         timestampLocal: new Date().toISOString(),
       });
     },

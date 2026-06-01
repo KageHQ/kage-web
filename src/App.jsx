@@ -10,6 +10,12 @@ const store = createVerifierStore();
 // Where the phone published its proof. Same host as the issuer/prover.
 const ISSUER = import.meta.env.VITE_ISSUER_URL || "http://localhost:4000";
 
+// This verifier gate is bound to one event. A proof is accepted only if it was
+// minted for this same event (scope). The nullifier is scoped per event, so the
+// same person can verify at a different event but not twice at this one.
+const EVENT_ID = import.meta.env.VITE_EVENT_ID || "1001";
+const EVENT_NAME = import.meta.env.VITE_EVENT_NAME || "Aurora Fest, Night 1";
+
 // Track nullifiers we've already handled so the same proof isn't resubmitted.
 const handled = new Set();
 
@@ -43,6 +49,12 @@ export default function App() {
       return;
     }
     const nullifier = publicSignals[5];
+    // The proof carries the event it was minted for. Turn it away at the door
+    // if it is not for this gate's event, before spending a transaction.
+    if (String(publicSignals[6]) !== String(EVENT_ID)) {
+      setStatus({ kind: "error", strong: "Wrong event", text: `this proof was issued for another event, not ${EVENT_NAME}.` });
+      return;
+    }
     if (handled.has(nullifier)) {
       setStatus({ kind: "replay", strong: "Already processed", text: "this proof was verified in this session." });
       return;
@@ -52,17 +64,19 @@ export default function App() {
     try {
       const { program, payer, connection } = getSolana();
       await ensureFunded();
-      const res = await submitProof(program, payer, proof, publicSignals);
+      const res = await submitProof(program, payer, proof, publicSignals, EVENT_ID);
       const slot = await connection.getSlot();
       handled.add(nullifier);
-      store.recordPass({ wallet: res.wallet, nullifier: res.nullifier, slot });
+      store.recordPass({ wallet: res.wallet, nullifier: res.nullifier, slot, scope: res.scope, eventName: EVENT_NAME });
       setRows(store.all());
       setStatus({ kind: "pass", strong: "Pass", text: "verified on-chain." });
     } catch (e) {
       const msg = String(e?.message || e);
-      if (/already in use|custom program error: 0x0|nullifier/i.test(msg)) {
+      if (/ScopeMismatch|scope/i.test(msg)) {
+        setStatus({ kind: "error", strong: "Wrong event", text: "proof scope does not match this gate." });
+      } else if (/already in use|custom program error: 0x0|nullifier/i.test(msg)) {
         handled.add(nullifier);
-        setStatus({ kind: "replay", strong: "Replay rejected", text: "nullifier already used." });
+        setStatus({ kind: "replay", strong: "Replay rejected", text: "nullifier already used at this event." });
       } else {
         setStatus({ kind: "error", strong: "Verification failed", text: msg.slice(0, 160) });
       }
@@ -119,6 +133,11 @@ export default function App() {
 
       <section className="console" aria-labelledby="verify-label">
         <p className="section-label" id="verify-label">01 / Verify</p>
+        <p className="gate">
+          <CalendarIcon />
+          Gate bound to <strong>{EVENT_NAME}</strong>
+          <span className="gate-id">scope {EVENT_ID}</span>
+        </p>
         <div className="verify-row">
           <CodeField value={code} onChange={setCode} onSubmit={fetchAndVerify} disabled={busy} />
           <button
@@ -181,7 +200,7 @@ export default function App() {
             {rows.length === 0 ? (
               <div className="empty">
                 <div className="empty-title">Nothing recorded yet</div>
-                <p>Verify a code and the exact stored record appears here: a result, a wallet, a nullifier, a slot. No identity fields exist.</p>
+                <p>Verify a code and the exact stored record appears here: a result, the event, a wallet, a nullifier, a slot. No identity fields exist.</p>
               </div>
             ) : (
               <div className="records">
@@ -191,6 +210,12 @@ export default function App() {
                       <span className="pass-chip"><CheckIcon /> Pass</span>
                       <span className="record-slot">slot {r.slot}</span>
                     </div>
+                    {r.eventName && (
+                      <div className="field">
+                        <span className="field-label">Event</span>
+                        <span className="field-value" title={`scope ${r.scope}`}>{r.eventName}</span>
+                      </div>
+                    )}
                     <div className="field">
                       <span className="field-label">Wallet</span>
                       <span className="field-value" title={r.wallet}>{trunc(r.wallet)}</span>
@@ -298,4 +323,7 @@ function DotIcon() {
 }
 function ArrowIcon() {
   return <svg viewBox="0 0 24 24" width="17" height="17" {...s} aria-hidden="true"><path d="M5 12h13" /><path d="M13 6l6 6-6 6" /></svg>;
+}
+function CalendarIcon() {
+  return <svg viewBox="0 0 24 24" {...s} aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /></svg>;
 }

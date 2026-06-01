@@ -58,10 +58,15 @@ export function formatProof(proof) {
 // ---------------------------------------------------------------------------
 // Submits the verify instruction. `program` is an initialized Anchor Program.
 // The on-chain instruction signature is:
-//   verify(proof: [u8; 256], public_inputs: Vec<[u8; 32]>, nullifier_hash: [u8; 32])
+//   verify(proof: [u8;256], public_inputs: Vec<[u8;32]>, nullifier_hash: [u8;32], scope: [u8;32])
+//
+// `expectedScope` is the eventId this verifier gate accepts (decimal string or
+// bigint). The program rejects the proof if its scope (publicSignals[6]) does
+// not match, so a proof minted for another event is turned away at this door.
 // ---------------------------------------------------------------------------
-export async function submitProof(program, payer, proof, publicSignals) {
+export async function submitProof(program, payer, proof, publicSignals, expectedScope) {
   const nullifierBytes = Buffer.from(to32(publicSignals[5]));
+  const scopeBytes = Buffer.from(to32(expectedScope));
   const [pda] = PublicKey.findProgramAddressSync(
     [Buffer.from("nullifier"), nullifierBytes],
     program.programId
@@ -70,9 +75,10 @@ export async function submitProof(program, payer, proof, publicSignals) {
     .verify(
       formatProof(proof),
       publicSignals.map((s) => Array.from(to32(s))),
-      Array.from(nullifierBytes)
+      Array.from(nullifierBytes),
+      Array.from(scopeBytes)
     )
     .accountsPartial({ nullifier: pda, payer })
     .rpc();
-  return { wallet: payer.toBase58(), nullifier: publicSignals[5] };
+  return { wallet: payer.toBase58(), nullifier: publicSignals[5], scope: publicSignals[6] };
 }
