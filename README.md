@@ -1,4 +1,11 @@
-# kage-web
+<h1 align="center">kage-web</h1>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB" alt="React">
+  <img src="https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Solana-000?style=flat-square&logo=solana&logoColor=14F195" alt="Solana">
+  <img src="https://img.shields.io/badge/Zero--Knowledge-6E56CF?style=flat-square" alt="Zero-Knowledge">
+</p>
 
 The zero-knowledge KYC verifier UI. It scans a mobile QR code, submits the Groth16 proof to the Solana program, shows the result — and stores **no PII**.
 
