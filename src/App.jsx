@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Html5Qrcode } from "html5-qrcode";
 import { parseScannedPayload } from "./qrDecode";
 import { createVerifierStore } from "./store";
 import { submitProof } from "./submit";
@@ -7,26 +6,28 @@ import { getSolana, ensureFunded } from "./solana";
 
 const store = createVerifierStore();
 
-// QR scanners fire the same frame many times/sec. Track nullifiers we've already
-// handled so a held-up QR isn't resubmitted in a loop (which would just spam the
-// replay-rejection path).
+// Where the phone published its proof. Same host as the issuer/prover.
+const ISSUER = import.meta.env.VITE_ISSUER_URL || "http://localhost:4000";
+
+// Track nullifiers we've already handled so the same proof isn't resubmitted.
 const handled = new Set();
 
 export default function App() {
   const [rows, setRows] = useState([]);
   const [last, setLast] = useState(null);
   const [wallet, setWallet] = useState(null);
+  const [code, setCode] = useState("");
   const busyRef = useRef(false);
-  const fileScannerRef = useRef(null);
 
-  // Shared path for a decoded QR string (from camera OR uploaded image).
+  // Decode a payload string then verify it on-chain.
   async function handlePayload(text) {
     if (busyRef.current) return;
     let proof, publicSignals;
     try {
       ({ proof, publicSignals } = parseScannedPayload(text));
-    } catch {
-      setLast("invalid QR");
+    } catch (e) {
+      console.error("decode failed", e);
+      setLast("invalid payload: " + String(e?.message || e));
       return;
     }
     const nullifier = publicSignals[5];
@@ -58,6 +59,25 @@ export default function App() {
     }
   }
 
+  // Fetch the payload from the relay by the code shown on the phone.
+  async function fetchAndVerify() {
+    const c = code.trim();
+    if (c.length < 6) return;
+    setLast("fetching proof…");
+    try {
+      const res = await fetch(`${ISSUER}/relay/${c}`);
+      if (!res.ok) {
+        setLast("code not found or expired");
+        return;
+      }
+      const { payload } = await res.json();
+      await handlePayload(payload);
+      setCode("");
+    } catch (e) {
+      setLast("relay error: " + String(e?.message || e).slice(0, 120));
+    }
+  }
+
   useEffect(() => {
     try {
       const { payer, rpc } = getSolana();
@@ -67,58 +87,34 @@ export default function App() {
     } catch (e) {
       console.error("solana init failed", e);
     }
-
-    const scanner = new Html5Qrcode("reader");
-    scanner
-      .start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          // Big box + high camera resolution so a dense (proof-sized) QR resolves.
-          qrbox: { width: 400, height: 400 },
-          videoConstraints: {
-            facingMode: "environment",
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-        },
-        (text) => handlePayload(text),
-        () => {}
-      )
-      .catch((e) => console.error("camera start failed", e));
-    fileScannerRef.current = new Html5Qrcode("reader-file");
-    return () => scanner.stop().catch(() => {});
   }, []);
-
-  async function onFile(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLast("decoding image…");
-    try {
-      const text = await fileScannerRef.current.scanFile(file, false);
-      await handlePayload(text);
-    } catch (err) {
-      setLast("could not read QR from image");
-      console.error(err);
-    } finally {
-      e.target.value = "";
-    }
-  }
 
   return (
     <div style={{ fontFamily: "system-ui", padding: 24, maxWidth: 900, margin: "auto" }}>
-      <h1>proven-kyc — Verifier</h1>
-      <div id="reader" style={{ width: 420 }} />
-      <p>Last scan: <b>{last ?? "—"}</b></p>
+      <h1>Kage — Verifier</h1>
 
-      <div style={{ margin: "8px 0" }}>
-        <label style={{ fontSize: 14 }}>
-          Camera struggling with the dense QR? Upload a screenshot of it instead:{" "}
-          <input type="file" accept="image/*" onChange={onFile} />
-        </label>
-        <div id="reader-file" style={{ display: "none" }} />
+      <p style={{ fontSize: 14, color: "#555" }}>
+        Enter the 6-digit code shown on the prover phone:
+      </p>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <input
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+          onKeyDown={(e) => e.key === "Enter" && fetchAndVerify()}
+          placeholder="123456"
+          inputMode="numeric"
+          style={{ fontSize: 28, letterSpacing: 6, padding: "8px 14px", width: 200 }}
+        />
+        <button
+          onClick={fetchAndVerify}
+          disabled={code.trim().length < 6}
+          style={{ fontSize: 18, padding: "10px 20px", cursor: "pointer" }}
+        >
+          Verify
+        </button>
       </div>
 
+      <p>Last result: <b>{last ?? "—"}</b></p>
       <p style={{ fontSize: 12, color: "#666" }}>
         Verifier wallet: <code>{wallet ?? "…"}</code>
       </p>
@@ -131,7 +127,7 @@ export default function App() {
           <p style={{ color: "#c00" }}>Breach → mass PII leak</p>
         </div>
         <div style={{ flex: 1, border: "1px solid #090", padding: 12 }}>
-          <h3>proven-kyc</h3>
+          <h3>Kage</h3>
           <pre>{JSON.stringify(rows, null, 2) || "[]"}</pre>
           <p style={{ color: "#090" }}>No PII stored → breach leaks nothing useful</p>
         </div>
