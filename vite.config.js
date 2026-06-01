@@ -1,16 +1,20 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    // @solana/web3.js + @coral-xyz/anchor expect Node globals (Buffer/process/global)
+    // in the browser. Inject them.
+    nodePolyfills({ globals: { Buffer: true, global: true, process: true } }),
+  ],
   optimizeDeps: {
-    include: ["@kagehq/shared"],
-  },
-  build: {
-    commonjsOptions: {
-      // Workspace symlinks resolve outside node_modules; widen the include
-      // pattern so rollup's CJS plugin transforms them.
-      include: [/proven-kyc\/shared/, /node_modules/],
-      transformMixedEsModules: true,
-    },
+    include: [
+      "@kagehq/shared",
+      "@kagehq/program-idl",
+      "@coral-xyz/anchor",
+      "@solana/web3.js",
+    ],
   },
 });
