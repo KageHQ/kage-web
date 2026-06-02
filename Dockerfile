@@ -10,10 +10,14 @@ ARG VITE_ISSUER_URL=""
 ARG VITE_RPC_URL=""
 ARG VITE_EVENT_ID=""
 ARG VITE_EVENT_NAME=""
+# Fixed devnet payer (JSON array of the 64-byte secret key). Public in the
+# bundle — throwaway devnet keypair only.
+ARG VITE_PAYER_SECRET=""
 ENV VITE_ISSUER_URL=$VITE_ISSUER_URL \
     VITE_RPC_URL=$VITE_RPC_URL \
     VITE_EVENT_ID=$VITE_EVENT_ID \
-    VITE_EVENT_NAME=$VITE_EVENT_NAME
+    VITE_EVENT_NAME=$VITE_EVENT_NAME \
+    VITE_PAYER_SECRET=$VITE_PAYER_SECRET
 
 # .npmrc holds the GitHub Packages token for the private @kagehq/* deps.
 # Mounted as a BuildKit secret so the token never lands in an image layer.

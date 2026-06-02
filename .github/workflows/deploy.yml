@@ -63,6 +63,7 @@ jobs:
             VITE_RPC_URL=${{ vars.VITE_RPC_URL }}
             VITE_EVENT_ID=${{ vars.VITE_EVENT_ID }}
             VITE_EVENT_NAME=${{ vars.VITE_EVENT_NAME }}
+            VITE_PAYER_SECRET=${{ secrets.VITE_PAYER_SECRET }}
 
       # Tell Dokploy to pull the new image and redeploy.
       - name: Trigger Dokploy redeploy
