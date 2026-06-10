@@ -12,11 +12,11 @@ importers:
         specifier: ^0.32.0
         version: 0.32.1(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
       '@kagehq/program-idl':
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: ^1.2.0
+        version: 1.2.0
       '@kagehq/shared':
-        specifier: ^1.1.0
-        version: 1.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+        specifier: ^1.2.0
+        version: 1.2.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)
       '@solana/web3.js':
         specifier: ^1.95.0
         version: 1.98.4(bufferutil@4.1.0)(typescript@6.0.3)(utf-8-validate@6.0.6)
@@ -397,11 +397,11 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@kagehq/program-idl@1.0.0':
-    resolution: {integrity: sha512-8dRINa5x6DJOZGJOlig/wwEkixdqRqH3I5B3yRAmNDKPuDWtWjJzk01aG2G7ZK9x6LuGYOE0hGpA66dix4A2bg==, tarball: https://npm.pkg.github.com/download/@kagehq/program-idl/1.0.0/875e86d763440ed0698357a4b712d926fb0d0103}
+  '@kagehq/program-idl@1.2.0':
+    resolution: {integrity: sha512-FceIeFhMnoTWKifvwlZlEuocYSCdTneAsX5QNnRJ838T8/IMzKE3rDZmKFtyw585bHsoG5zZby3VtPgwJsfvZQ==, tarball: https://npm.pkg.github.com/download/@kagehq/program-idl/1.2.0/973246a84caab27cfa5533b6dff3a48b8549bd34}
 
-  '@kagehq/shared@1.1.0':
-    resolution: {integrity: sha512-w+R2hMS3Wgzi0WVGe7L+WZ9x/1hEX8lCfJt5Vz6AvUtaPDAF1up6u73dIj/JfLMatp0b7xr7TiaTjLb8HI5sqQ==, tarball: https://npm.pkg.github.com/download/@kagehq/shared/1.1.0/2ec9ba719374ad35f72064dd00eca8df5067b7e5}
+  '@kagehq/shared@1.2.0':
+    resolution: {integrity: sha512-q7hNhb+adH+6r6tM2hb1xwZNrWKsUmfruX1KvYEqYA41FLaZTNkyHLt7Ir4LMTOR13VhOibQwZG/Eylo4Kke3Q==, tarball: https://npm.pkg.github.com/download/@kagehq/shared/1.2.0/6a032e43eb3ef109c410dc3dde978eb9a5cd94db}
 
   '@noble/curves@1.9.7':
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
@@ -2238,9 +2238,9 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@kagehq/program-idl@1.0.0': {}
+  '@kagehq/program-idl@1.2.0': {}
 
-  '@kagehq/shared@1.1.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
+  '@kagehq/shared@1.2.0(bufferutil@4.1.0)(utf-8-validate@6.0.6)':
     dependencies:
       circomlibjs: 0.1.7(bufferutil@4.1.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:

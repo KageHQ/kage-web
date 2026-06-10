@@ -11,7 +11,7 @@
     "react-dom": "^18.2.0",
     "buffer": "^6.0.3",
     "@kagehq/shared": "^1.2.0",
-    "@kagehq/program-idl": "^1.0.0"
+    "@kagehq/program-idl": "^1.2.0"
   },
   "devDependencies": {
     "vite": "^5.2.0",
